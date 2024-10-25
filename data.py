@@ -20,7 +20,7 @@ mycursor.execute("SELECT * FROM car_brand")
 
 myresult = mycursor.fetchall()
 
-for brand in myresult:f
+for brand in myresult:
     if brand[1] != 'Porsche' and brand[1] != 'Tata' and brand[1] != 'Mahindra':
         mycursor.execute("UPDATE car_brand SET number_of_vehicles = number_of_vehicles + 2 WHERE name = %s", (brand[1],))
     elif brand[1] == 'Tata' or brand[1] == 'Mahindra':
