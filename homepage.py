@@ -127,7 +127,7 @@ for row in range(total_rows):
 
                 if st.button(f"View {Name}", key=unique_key):
                     st.session_state.selected_car = Name
-                    st.write(f"Selected car: {Name}")
+                    st.write(f"Selected Car: {Name}")
 
 # Close the database connection
 cursor.close()
