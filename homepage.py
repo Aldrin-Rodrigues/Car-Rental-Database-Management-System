@@ -115,9 +115,6 @@ for row in range(total_rows):
                 
                 unique_key = f"btn_{car_index}_{Name}"
                 # Add the button
-                if st.button(f"View {Name}", key=unique_key):
-                    st.session_state.selected_car = Name
-                    st.write(f"Selected car: {Name}")
                 st.markdown(f"""
                 <div class="car-card">
                     <h4>{Name}</h4>
@@ -128,6 +125,9 @@ for row in range(total_rows):
                 </div>
                 """, unsafe_allow_html=True)
 
+                if st.button(f"View {Name}", key=unique_key):
+                    st.session_state.selected_car = Name
+                    st.write(f"Selected car: {Name}")
 
 # Close the database connection
 cursor.close()
