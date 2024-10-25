@@ -1,9 +1,10 @@
-
-
-
 import streamlit as st
 import mysql.connector
 from math import ceil
+import os
+
+password = os.environ.get('password')
+database_name = os.environ.get('dname')
 
 st.set_page_config(layout="wide")
 
@@ -80,8 +81,8 @@ choice = st.sidebar.selectbox("Menu", menu)
 conn = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="Aritro123!@#",
-    database="car"
+    password=password,
+    database=database_name
 )
 
 cursor = conn.cursor()
@@ -111,8 +112,8 @@ for row in range(total_rows):
             # Display car details in a card format with button
             with cols[col]:
                 # Create unique key using car_index
-                unique_key = f"btn_{car_index}_{Name}"
                 
+                unique_key = f"btn_{car_index}_{Name}"
                 # Add the button
                 if st.button(f"View {Name}", key=unique_key):
                     st.session_state.selected_car = Name
