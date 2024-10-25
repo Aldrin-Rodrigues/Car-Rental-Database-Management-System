@@ -3,7 +3,7 @@ import mysql.connector
 from math import ceil
 import os
 
-password = os.environ.get('password')
+password = os.environ.get('dbmsPWD')
 database_name = os.environ.get('dname')
 
 st.set_page_config(layout="wide")
