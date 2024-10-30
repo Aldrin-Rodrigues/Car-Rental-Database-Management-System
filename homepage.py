@@ -8,6 +8,13 @@ import base64
 def load_svg_as_base64(file_path):
     with open(file_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+    
+if 'is_logged_in' not in st.session_state or not st.session_state.is_logged_in:
+    st.warning("Please log in to access the main page.")
+    if st.button(f"Please Login", key=f"btn_login_signup"):
+                    # st.session_state.selected_car = car
+                    st.switch_page("pages/loginpage.py")
+    st.stop()  # Stop further execution until login is successful
 
 password = os.environ.get('dbmsPWD')
 database_name = os.environ.get('dname')
@@ -97,6 +104,12 @@ st.header("Available Cars")
 menu = ["Add Car", "Search Car", "Update Car Status"]
 choice = st.sidebar.selectbox("Menu", menu)
 
+st.sidebar.markdown("---")  # Add a horizontal line for separation
+if st.sidebar.button("Logout"):
+    st.session_state.is_logged_in = False
+    st.session_state.current_form = None
+    st.rerun()
+
 # Database connection
 conn = mysql.connector.connect(
     host="localhost",
@@ -155,7 +168,7 @@ for row in range(total_rows):
 
 # Redirect to car detail page if a car is selected
 if "selected_car" in st.session_state:
-    st.experimental_set_query_params(page="car_details")
+    st.session_state.remove("selected_car")
 
 # Close the database connection
 cursor.close()
