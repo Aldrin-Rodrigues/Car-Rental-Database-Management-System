@@ -2,6 +2,12 @@ import streamlit as st
 import mysql.connector
 from math import ceil
 import os
+import base64
+
+# Encode the SVG as base64
+def load_svg_as_base64(file_path):
+    with open(file_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 password = os.environ.get('dbmsPWD')
 database_name = os.environ.get('dname')
@@ -16,31 +22,38 @@ sticky_header = """
         padding: 20px;
         border-radius: 10px;
         margin-bottom: 10px;
-        transition: transfrom 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
         cursor: pointer;
+        height: 275px;  /* Fixed height */
+        overflow: hidden;  /* Prevent text overflow */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative
     }
-    .car-card:hover {
-        transform: translateY(-5px);  /* Slight lift effect */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);  /* Shadow effect */
-    }
-    a {
-        text-decoration: none;
-        color: inherit;
-    }
-    .car-card h4 {
-        color: #2c3e50;  /* Heading color */
-    }
-    .car-card p {
-        color: #34495e;  /* Text color */
-    }
-    .car-card strong {
-        color: ##0F2D69;  /* Label color */
-    }
+.car-card:hover {
+    transform: translateY(-5px);  /* Slight lift effect */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);  /* Shadow effect */
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+.car-card h4 {
+    color: #2c3e50;  /* Heading color */
+}
+.car-card p {
+    color: #34495e;  /* Text color */
+}
+.car-card strong {
+    color: ##0F2D69;  /* Label color */
+}
 .sticky {
   position: -webkit-sticky;
   position: sticky;
   top: 0;
-  background-color: #0F2D69;
+  background-color: blue;  #color of the top primemotors title
   color: white;
   padding: 10px;
   font-size: 20px;
@@ -61,6 +74,13 @@ sticky_header = """
 .car-card h4 {
     color: #0F2D69;
     margin-bottom: 10px;
+}
+.logo {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 40px; /* Adjust size as needed */
+    height: auto;
 }
 </style>
 """
@@ -86,7 +106,10 @@ conn = mysql.connector.connect(
 )
 
 cursor = conn.cursor()
-query = "SELECT Name, Color, No_of_seats, Price, Type FROM car_model"
+# query = "SELECT Name, Color, No_of_seats, Price, Type FROM car_model"
+query = "SELECT cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand \
+    FROM car_model cm \
+    JOIN car_brand cb ON cm.Brand_id = cb.Brand_id"
 cursor.execute(query)
 cars = cursor.fetchall()
 
@@ -107,21 +130,22 @@ for row in range(total_rows):
         # Check if we still have cars to display
         if car_index < total_cars:
             car = cars[car_index]
-            Name, Color, No_of_seats, Price, Type = car
+            Name, Color, No_of_seats, Price, Type, Brand = car
             
             # Display car details in a card format with button
             with cols[col]:
                 # Create unique key using car_index
-                
+                svg_base64 = load_svg_as_base64(f"SVG/{Brand.lower()}.svg")
                 unique_key = f"btn_{car_index}_{Name}"
                 # Add the button
                 st.markdown(f"""
                 <div class="car-card">
-                    <h4>{Name}</h4>
-                    <p><strong>Type:</strong> {Type}</p>
-                    <p><strong>Color:</strong> {Color}</p>
-                    <p><strong>Seats:</strong> {No_of_seats}</p>
-                    <p><strong>Price:</strong> {Price:} Rs.</p>
+                <h4>{Brand} {Name}</h4>
+                <p><strong>Type:</strong> {Type}</p>
+                <p><strong>Color:</strong> {Color}</p>
+                <p><strong>Seats:</strong> {No_of_seats}</p>
+                <p><strong>Price:</strong> Rs. {Price} </p>
+                <img src="data:image/svg+xml;base64,{svg_base64}" alt="Brand Logo" class="logo">
                 </div>
                 """, unsafe_allow_html=True)
 
