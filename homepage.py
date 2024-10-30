@@ -149,9 +149,13 @@ for row in range(total_rows):
                 </div>
                 """, unsafe_allow_html=True)
 
-                if st.button(f"View {Name}", key=unique_key):
-                    st.session_state.selected_car = Name
-                    st.write(f"Selected car: {Name}")
+                if st.button(f"View {Name}", key=f"btn_{car_index}_{Name}"):
+                    st.session_state.selected_car = car
+                    st.switch_page("pages/carDetails.py")
+
+# Redirect to car detail page if a car is selected
+if "selected_car" in st.session_state:
+    st.experimental_set_query_params(page="car_details")
 
 # Close the database connection
 cursor.close()
