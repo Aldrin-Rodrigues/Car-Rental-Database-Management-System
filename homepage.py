@@ -122,15 +122,8 @@ st.markdown('<div class="sticky">PrimeMotors</div>', unsafe_allow_html=True)
 # Add the rest of your content
 st.title("Welcome to PrimeMotors")
 st.header("Available Cars")
-menu = ["Add Car", "Search Car", "Update Car Status"]
-choice = st.sidebar.selectbox("Menu", menu)
 
-st.sidebar.markdown("---")  # Add a horizontal line for separation
-if st.sidebar.button("Logout"):
-    st.sesssion_state.admin = False
-    st.session_state.is_logged_in = False
-    st.session_state.current_form = None
-    st.rerun()
+###################
 
 # Database connection
 conn = mysql.connector.connect(
@@ -141,12 +134,106 @@ conn = mysql.connector.connect(
 )
 
 cursor = conn.cursor()
-# query = "SELECT Name, Color, No_of_seats, Price, Type FROM car_model"
-query = "SELECT cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand \
-    FROM car_model cm \
-    JOIN car_brand cb ON cm.Brand_id = cb.Brand_id"
-cursor.execute(query)
+
+# Get unique values for filters
+cursor.execute("SELECT DISTINCT Name FROM car_brand")
+brands = [brand[0] for brand in cursor.fetchall()]
+cursor.execute("SELECT DISTINCT No_of_seats FROM car_model")
+seats = [seat[0] for seat in cursor.fetchall()]
+cursor.execute("SELECT DISTINCT Type FROM car_model")
+types = [type[0] for type in cursor.fetchall()]
+cursor.execute("SELECT MIN(Price), MAX(Price) FROM car_model")
+min_price, max_price = cursor.fetchall()[0]
+cursor.execute("SELECT DISTINCT Color FROM car_model")
+colors = [color[0] for color in cursor.fetchall()]
+
+# Sidebar filters
+st.sidebar.header("Filters")
+
+
+price_range = st.sidebar.slider(
+    "Price Range (Rs.)",
+    min_value=float(min_price),
+    max_value=float(max_price),
+    value=(float(min_price), float(max_price))
+)
+
+selected_brand = st.sidebar.selectbox(
+    "Brand",
+    ["All"] + brands
+)
+
+selected_seats = st.sidebar.selectbox(
+    "Number of Seats",
+    ["All"] + seats
+)
+
+selected_type = st.sidebar.selectbox(
+    "Vehicle Type",
+    ["All"] + types
+)
+
+selected_color = st.sidebar.selectbox(
+    "Color",
+    ["All"] + colors
+)
+
+# st.sidebar.markdown("---")  # Add a horizontal line for separation
+if st.sidebar.button("Logout"):
+    st.sesssion_state.admin = False
+    st.session_state.is_logged_in = False
+    st.session_state.current_form = None
+    st.rerun()
+    
+    
+############
+# Build the WHERE clause based on selected filters
+where_clauses = []
+params = []
+
+if selected_brand != "All":
+    where_clauses.append("cb.Name = %s")
+    params.append(selected_brand)
+
+if selected_seats != "All":
+    where_clauses.append("cm.No_of_seats = %s")
+    params.append(selected_seats)
+
+if selected_type != "All":
+    where_clauses.append("cm.Type = %s")
+    params.append(selected_type)
+
+if selected_color != "All":
+    where_clauses.append("cm.Color = %s")
+    params.append(selected_color)
+
+where_clauses.append("cm.Price BETWEEN %s AND %s")
+params.extend([price_range[0], price_range[1]])
+
+# Construct the final query
+query = """
+    SELECT cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand 
+    FROM car_model cm 
+    JOIN car_brand cb ON cm.Brand_id = cb.Brand_id
+"""
+
+if where_clauses:
+    query += " WHERE " + " AND ".join(where_clauses)
+
+# Execute the filtered query
+cursor.execute(query, tuple(params))
 cars = cursor.fetchall()
+
+#############
+
+
+# cursor = conn.cursor()
+# # query = "SELECT Name, Color, No_of_seats, Price, Type FROM car_model"
+# query = "SELECT cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand \
+#     FROM car_model cm \
+#     JOIN car_brand cb ON cm.Brand_id = cb.Brand_id"
+# cursor.execute(query)
+# cars = cursor.fetchall()
 
 # Calculate total number of rows needed
 total_cars = len(cars)
@@ -172,6 +259,7 @@ for row in range(total_rows):
                 # Create unique key using car_index
                 svg_base64 = load_svg_as_base64(f"SVG/{Brand.lower()}.svg")
                 unique_key = f"btn_{car_index}_{Name}"
+                
                 # Add the button
                 st.markdown(f"""
                 <div class="car-card">
