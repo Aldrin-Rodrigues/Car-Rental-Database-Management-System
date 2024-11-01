@@ -1,6 +1,9 @@
 import streamlit as st
 import time
 
+admin_username = "admin"
+admin_password = "admin"
+
 # Set the page configuration
 st.set_page_config(
     page_title="PrimeMotors",
@@ -10,11 +13,13 @@ st.set_page_config(
 
 # Initialize session state variables
 if 'users' not in st.session_state:
-    st.session_state.users = {}
+    st.session_state.users = {"admin": "admin"}
 if 'current_form' not in st.session_state:
     st.session_state.current_form = None
 if 'is_logged_in' not in st.session_state:
     st.session_state.is_logged_in = False
+if 'admin' not in st.session_state:
+    st.session_state.admin = False
 
 def create_header():
     """Create the header with logo and title"""
@@ -71,6 +76,10 @@ def show_login_form():
             if login(username, password):
                 st.session_state.is_logged_in = True
                 st.session_state.current_form = None
+                if username == admin_username:
+                    st.session_state.admin = True
+                    st.success(f"Welcome Sir/Madam! You are now logged in as an admin.")
+                    st.rerun()
                 st.success(f"Welcome {username}!")
                 st.rerun()
                 
@@ -108,11 +117,22 @@ def main():
     """Main application logic"""
     create_header()
     
+    if st.session_state.admin:
+        st.write("You are logged in as admin!")
+        time.sleep(1)
+        st.switch_page("pages/admin.py")
+        if st.button("Logout"):
+            st.session_state.admin = False
+            st.session_state.is_logged_in = False
+            st.session_state.current_form = None
+        st.rerun()
+            
     if st.session_state.is_logged_in:
         st.write("You are logged in!")
         time.sleep(1)
         st.switch_page("homepage.py")
         if st.button("Logout"):
+            st.session_state.admin = False
             st.session_state.is_logged_in = False
             st.session_state.current_form = None
             st.rerun()

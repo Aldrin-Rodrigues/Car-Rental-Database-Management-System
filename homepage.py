@@ -9,6 +9,29 @@ def load_svg_as_base64(file_path):
     with open(file_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
     
+st.set_page_config(layout="wide")
+
+# st.markdown(
+#     """
+#     <style>
+#     /* Set background color for the main content */
+#     .stApp {
+#         background-color: #1D3557;  /* Replace with your desired background color */
+#     }
+#     /* Set background color for the sidebar */
+#     section[data-testid="stSidebar"] {
+#         background-color: #457B9D;  /* Replace with your desired sidebar color */
+#         color: white;  /* Adjust text color for better contrast */
+#     }
+#     /* Customize text in the sidebar */
+#     section[data-testid="stSidebar"] .css-17eq0hr {
+#         color: white;  /* Text color */
+#     }
+#     </style>
+#     """,
+#     unsafe_allow_html=True
+# )
+    
 if 'is_logged_in' not in st.session_state or not st.session_state.is_logged_in:
     st.warning("Please log in to access the main page.")
     if st.button(f"Please Login", key=f"btn_login_signup"):
@@ -18,8 +41,6 @@ if 'is_logged_in' not in st.session_state or not st.session_state.is_logged_in:
 
 password = os.environ.get('dbmsPWD')
 database_name = os.environ.get('dname')
-
-st.set_page_config(layout="wide")
 
 # Define sticky header CSS
 sticky_header = """
@@ -60,7 +81,7 @@ a {
   position: -webkit-sticky;
   position: sticky;
   top: 0;
-  background-color: blue;  #color of the top primemotors title
+  background-color: teal;  #color of the top primemotors title
   color: white;
   padding: 10px;
   font-size: 20px;
@@ -106,6 +127,7 @@ choice = st.sidebar.selectbox("Menu", menu)
 
 st.sidebar.markdown("---")  # Add a horizontal line for separation
 if st.sidebar.button("Logout"):
+    st.sesssion_state.admin = False
     st.session_state.is_logged_in = False
     st.session_state.current_form = None
     st.rerun()
