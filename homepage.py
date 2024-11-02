@@ -212,7 +212,7 @@ params.extend([price_range[0], price_range[1]])
 
 # Construct the final query
 query = """
-    SELECT cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand 
+    SELECT cm.Reg_No, cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand 
     FROM car_model cm 
     JOIN car_brand cb ON cm.Brand_id = cb.Brand_id
 """
@@ -252,7 +252,7 @@ for row in range(total_rows):
         # Check if we still have cars to display
         if car_index < total_cars:
             car = cars[car_index]
-            Name, Color, No_of_seats, Price, Type, Brand = car
+            Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
             
             # Display car details in a card format with button
             with cols[col]:
@@ -274,6 +274,7 @@ for row in range(total_rows):
 
                 if st.button(f"View {Name}", key=f"btn_{car_index}_{Name}"):
                     st.session_state.selected_car = car
+                    # st.switch_page("pages/carDetails.py")
                     st.switch_page("pages/carDetails.py")
 
 # Redirect to car detail page if a car is selected
