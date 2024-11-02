@@ -19,7 +19,7 @@ if "selected_car" in st.session_state:
 
     with left:
         # Increase the width of the image (adjust as necessary)
-        st.image(f"Images/image.png", caption=f"{Brand} {Name}", width = 400)  # Set width to 300px
+        st.image(f"Images/buggatti.jpeg", caption=f"{Brand} {Name}", width = 400)  # Set width to 300px
 
     with right:
         st.write(f"**Type:** {Type}")

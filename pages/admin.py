@@ -21,7 +21,7 @@ menu = ["Add Car", "Update Car Price", "Delete Car", "View All Cars", "Write a Q
 choice = st.sidebar.selectbox("Menu", menu)
 # st.sidebar.markdown("---")  # Add a horizontal line for separation
 if st.sidebar.button("Logout"):
-    st.sesssion_state.admin = False
+    st.session_state.admin = False
     st.session_state.is_logged_in = False
     st.session_state.current_form = None
     st.rerun()
@@ -99,11 +99,9 @@ def Update_Car_Details():
     if st.button("Update Car Details"):
         try:
             cursor = conn.cursor()
-            query = "UPDATE car_model SET Price = %s WHERE Reg_No = %s"
-            cursor.execute(query, (car_price, car_reg))
+            cursor.callproc("UpdateCarPrice", (car_reg, car_price))
             conn.commit()
 
-            # Check if any row was affected
             if cursor.rowcount > 0:
                 st.success("Car details updated successfully!")
             else:
@@ -112,9 +110,6 @@ def Update_Car_Details():
         except Exception as e:
             st.error(f"An error occurred: {e}")
             
-        # time.sleep(2)
-        # st.session_state["car_reg"] = ""
-        # st.session_state["car_price"] = 0
             
 def Delete_Car():
     st.title("Delete Car")
@@ -145,13 +140,10 @@ def Delete_Car():
         except Exception as e:
             st.error(f"An error occurred: {e}")
             
-        # time.sleep(2)
-        # st.session_state["car_reg"] = ""
         
 def View_All_Cars():
     st.title("All Cars")
     
-    # Create cursor and execute query
     cursor = conn.cursor()
     query = """
         SELECT 
@@ -238,6 +230,7 @@ def Query():
             cursor = conn.cursor()
             cursor.execute(query)
             results = cursor.fetchall()
+            # conn.commit()
             
             if results:
                 st.table(results)

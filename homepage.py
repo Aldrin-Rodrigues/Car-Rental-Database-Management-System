@@ -123,7 +123,7 @@ st.markdown('<div class="sticky">PrimeMotors</div>', unsafe_allow_html=True)
 st.title("Welcome to PrimeMotors")
 st.header("Available Cars")
 
-###################
+
 
 # Database connection
 conn = mysql.connector.connect(
@@ -180,7 +180,7 @@ selected_color = st.sidebar.selectbox(
 
 # st.sidebar.markdown("---")  # Add a horizontal line for separation
 if st.sidebar.button("Logout"):
-    st.sesssion_state.admin = False
+    st.session_state.admin = False
     st.session_state.is_logged_in = False
     st.session_state.current_form = None
     st.rerun()
@@ -278,7 +278,7 @@ for row in range(total_rows):
 
 # Redirect to car detail page if a car is selected
 if "selected_car" in st.session_state:
-    st.session_state.remove("selected_car")
+    st.session_state.selected_car = False
 
 # Close the database connection
 cursor.close()
