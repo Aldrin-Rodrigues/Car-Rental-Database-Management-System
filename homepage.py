@@ -11,6 +11,13 @@ def load_svg_as_base64(file_path):
     
 st.set_page_config(layout="wide")
 
+def Calculate_total_available():
+    query = "SELECT COUNT(*) as count FROM car_model WHERE is_available=1"
+    cursor.execute(query)
+    values = cursor.fetchall()
+    return values[0][0]
+    
+
 # st.markdown(
 #     """
 #     <style>
@@ -64,6 +71,28 @@ sticky_header = """
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);  /* Shadow effect */
 }
 
+.car-card.unavailable {
+    background-color: #e9ecef;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.car-card:not(.unavailable):hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.unavailable-label {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #dc3545;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
 a {
     text-decoration: none;
     color: inherit;
@@ -109,6 +138,23 @@ a {
     right: 5px;
     width: 40px; /* Adjust size as needed */
     height: auto;
+}
+
+.btn-view {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #0F2D69;
+    color: white;
+    margin-top: 10px;
+}
+
+.btn-view.unavailable {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 </style>
 """
@@ -210,9 +256,11 @@ if selected_color != "All":
 where_clauses.append("cm.Price BETWEEN %s AND %s")
 params.extend([price_range[0], price_range[1]])
 
+
+###### change 1
 # Construct the final query
 query = """
-    SELECT cm.Reg_No, cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand 
+    SELECT cm.is_available, cm.Reg_No, cm.Name, cm.Color, cm.No_of_seats, cm.Price, cm.Type, cb.Name AS Brand 
     FROM car_model cm 
     JOIN car_brand cb ON cm.Brand_id = cb.Brand_id
 """
@@ -235,10 +283,11 @@ cars = cursor.fetchall()
 # cursor.execute(query)
 # cars = cursor.fetchall()
 
+# total_cars = Calculate_total_available()
 # Calculate total number of rows needed
-total_cars = len(cars)
+total_cars = len(cars) #16
 cars_per_row = 4
-total_rows = ceil(total_cars / cars_per_row)
+total_rows = ceil(total_cars / cars_per_row) #4
 
 # Create grid layout
 for row in range(total_rows):
@@ -252,30 +301,47 @@ for row in range(total_rows):
         # Check if we still have cars to display
         if car_index < total_cars:
             car = cars[car_index]
-            Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
             
+            ## CHANGE 2
+            Status, Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
+            
+            ## CHANGE 3
             # Display car details in a card format with button
             with cols[col]:
                 # Create unique key using car_index
                 svg_base64 = load_svg_as_base64(f"SVG/{Brand.lower()}.svg")
                 unique_key = f"btn_{car_index}_{Name}"
                 
-                # Add the button
+                 # Add unavailable class if Status is 0
+                availability_class = "unavailable" if Status == 0 else ""
+                unavailable_label = '<span class="unavailable-label">Not Available</span>' if Status == 0 else ''
+                
+                
+                 # Create the card with conditional styling
                 st.markdown(f"""
-                <div class="car-card">
+                <div class="car-card {availability_class}">
+                {unavailable_label}
                 <h4>{Brand} {Name}</h4>
                 <p><strong>Type:</strong> {Type}</p>
                 <p><strong>Color:</strong> {Color}</p>
                 <p><strong>Seats:</strong> {No_of_seats}</p>
-                <p><strong>Price:</strong> Rs. {Price} </p>
+                <p><strong>Price:</strong> Rs. {Price}</p>
                 <img src="data:image/svg+xml;base64,{svg_base64}" alt="Brand Logo" class="logo">
                 </div>
                 """, unsafe_allow_html=True)
 
-                if st.button(f"View {Name}", key=f"btn_{car_index}_{Name}"):
-                    st.session_state.selected_car = car
-                    # st.switch_page("pages/carDetails.py")
-                    st.switch_page("pages/carDetails.py")
+                 # Only make the button functional if the car is available
+                if Status == 1:
+                    if st.button(f"View {Name}", key=f"btn_{car_index}_{Name}"):
+                        st.session_state.selected_car = car
+                        st.switch_page("pages/carDetails.py")
+                else:
+                    # Display a disabled button for unavailable cars
+                    st.markdown(f"""
+                    <button class="btn-view unavailable" disabled>
+                        Unavailable!
+                    </button>
+                    """, unsafe_allow_html=True)
 
 # Redirect to car detail page if a car is selected
 if "selected_car" in st.session_state:

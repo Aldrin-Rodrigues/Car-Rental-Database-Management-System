@@ -1,5 +1,7 @@
 import streamlit as st
 import time
+import mysql.connector
+import os
 
 admin_username = "admin"
 admin_password = "admin"
@@ -11,9 +13,34 @@ st.set_page_config(
     layout="wide"
 )
 
+password = os.environ.get('dbmsPWD')
+database_name = os.environ.get('dname')
+#Database connection
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password=password,
+    database=database_name)
+
+def update_login(username, password):
+    cursor = conn.cursor()
+    query = "INSERT INTO login values(%s, %s)"
+    cursor.execute(query, (username, password))
+    conn.commit()
+
+def get_users():
+    cursor = conn.cursor()
+    query = "SELECT * FROM login"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    credentials_dict = {row[0]: row[1] for row in results}
+    return credentials_dict
+    
+credentials = get_users()
+
 # Initialize session state variables
 if 'users' not in st.session_state:
-    st.session_state.users = {"admin": "admin"}
+    st.session_state.users = credentials
 if 'current_form' not in st.session_state:
     st.session_state.current_form = None
 if 'is_logged_in' not in st.session_state:
@@ -44,6 +71,7 @@ def signup(username, password):
         st.error("Username already exists!")
         return False
     st.session_state.users[username] = password
+    update_login(username, password)
     return True
 
 def login(username, password):

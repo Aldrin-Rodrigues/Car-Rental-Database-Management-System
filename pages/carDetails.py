@@ -220,6 +220,10 @@ def book_car(reg_no, dealership_id):
                 """, (dealership_id, customer_id, booking_id))
                 print("connection done")
                 
+                query = "UPDATE car_model SET is_available=0 WHERE Reg_No=%s"
+                cursor.execute(query,(reg_no,))
+                print("Made Car Unavailable")
+                
                 # Commit transaction
                 conn.commit()
                 print("transaction done")
@@ -279,9 +283,10 @@ if "selected_car" in st.session_state:
             database=database_name
         )
         
+        #chnage 4
         car = st.session_state.selected_car
         print(car)
-        Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
+        Status, Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
         st.title(f"Your {Brand} {Name}")
 
         # Display car image and details

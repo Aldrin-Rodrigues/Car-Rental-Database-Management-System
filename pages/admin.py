@@ -18,7 +18,7 @@ if 'admin' not in st.session_state or not st.session_state.admin:
 #     st.stop()  # Stop further execution until login is successful
 
 
-menu = ["Add Car", "Update Car Price", "Delete Car", "View All Cars", "Write a Query", "Service Data"]
+menu = ["Add Car", "Update Car Price","Update Car Status", "Delete Car", "View All Cars", "Write a Query", "Service Data"]
 choice = st.sidebar.selectbox("Menu", menu)
 # st.sidebar.markdown("---")  # Add a horizontal line for separation
 if st.sidebar.button("Logout"):
@@ -53,21 +53,26 @@ def add_Car():
         "car_type": "Sedan"
     }
     
+    #change 5 default is_available to 0
     car_registration = st.text_input("Car Registration", key="car_registration")
     car_engine_number = st.text_input("Engine Number", key="car_engine_number")
     car_chassis_number = st.text_input("Chassis Number", key="car_chassis_number")
     car_color = st.text_input("Car Color", key="car_color")
     car_brand = st.text_input("Car Brand", key="car_brand")
+    car_brand_id = st.text_input("Car Brand ID", key="car brand id")
     car_model = st.text_input("Car Model", key="car_model")
     car_seats = st.number_input("Number of Seats", min_value=1, max_value=10, key="car_seats")
     car_price = st.number_input("Price", min_value=0, key="car_price")
     car_type = st.selectbox("Car Type", ["Sedan", "SUV", "Hatchback", "Sports Car"], key="car_type")
+    car_available = st.number_input("Availability", key="car_available", value=0)
 
     if st.button("Add Car"):
         try:
+            ##change 6 add variable is_available
             cursor = conn.cursor()
-            query = "INSERT INTO car_model (Reg_No, Engine_No, Chassis_No, Color, Name, No_of_seats, Price, Type, Brand_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, (SELECT Brand_id FROM car_brand WHERE Name = %s))"
-            cursor.execute(query, (car_registration, car_engine_number, car_chassis_number, car_color, car_model, car_seats, car_price, car_type, car_brand))
+            # query = "INSERT INTO car_model (Reg_No, Engine_No, Chassis_No, Color, Name, No_of_seats, Price, Type, Brand_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, (SELECT Brand_id FROM car_brand WHERE Name = %s))"
+            query = "INSERT INTO car_model (Reg_No, Engine_No, Chassis_No, Color, Name, No_of_seats, Price, Type, Brand_ID, is_available) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            cursor.execute(query, (car_registration, car_engine_number, car_chassis_number, car_color, car_model, car_seats, car_price, car_type, car_brand_id, car_available))
             conn.commit()
             
             if cursor.rowcount > 0:
@@ -111,6 +116,38 @@ def Update_Car_Details():
         except Exception as e:
             st.error(f"An error occurred: {e}")
             
+##CHANGE 6
+#add fucniton to make car available
+
+def Update_Car_Status():
+    st.title("Update Car Availability")
+    
+    form_fields = {
+        "car_reg": "",
+        "Status": 0
+    }
+    
+    for key, value in form_fields.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+            
+    car_reg = st.text_input("Enter Car Registration", key="car_reg")
+    car_availability = st.number_input("Status", min_value=0, key="car_availability")
+    
+    if st.button("Update Car status"):
+        try:
+            cursor = conn.cursor()
+            cursor.callproc("UpdateCarStatus", (car_reg, car_availability))
+            conn.commit()
+
+            if cursor.rowcount > 0:
+                st.success("Car details updated successfully!")
+            else:
+                st.warning("No car found with the entered registration number. Please enter a valid registration number.")
+
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+    
             
 def Delete_Car():
     st.title("Delete Car")
@@ -141,7 +178,8 @@ def Delete_Car():
         except Exception as e:
             st.error(f"An error occurred: {e}")
             
-        
+
+
 def View_All_Cars():
     st.title("All Cars")
     
@@ -314,9 +352,9 @@ def View_Due_Services():
         with col2:
             days_threshold = st.slider(
                 "Show vehicles due within days",
-                min_value=0,
+                min_value=31,
                 max_value=90,
-                value=30
+                value=50
             )
         
         # Apply filters
@@ -414,6 +452,8 @@ if choice == "Add Car":
     add_Car()
 elif choice == "Update Car Price":
     Update_Car_Details()
+elif choice == "Update Car Status":
+    Update_Car_Status()
 elif choice == "Delete Car":
     Delete_Car()
 elif choice == "View All Cars":
@@ -422,5 +462,6 @@ elif choice == "Write a Query":
     Query()
 elif choice == "Service Data":
     View_Due_Services()
+
     
     

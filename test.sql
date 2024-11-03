@@ -216,6 +216,8 @@ FROM car_model;
 
 
 CREATE TRIGGER update_vehicle_count AFTER INSERT ON car_model FOR EACH ROW BEGIN UPDATE car_brand SET number_of_vehicles = number_of_vehicles + 1 WHERE brand_id = NEW.brand_id; END;
+CREATE TRIGGER reduce_vehicle_count  AFTER DELETE ON car_model FOR EACH ROW BEGIN UPDATE car_brand SET number_of_vehicles = number_of_vehicles - 1 WHERE brand_id = OLD.brand_id; END$$
+
 
 
 DELIMITER //
