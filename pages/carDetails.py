@@ -13,6 +13,32 @@ if 'is_logged_in' not in st.session_state or not st.session_state.is_logged_in:
     st.stop()  # Stop further execution until login is successful
     
 # def display_total():
+
+def calculate_total(delivery_date, return_date, car_price):
+    """Calculate total amount based on dates and car price"""
+    total_days = (return_date - delivery_date).days
+    base_amount = total_days * car_price
+    
+    # Calculate discount based on duration
+    if total_days >= 30:
+        discount = 0.15  # 15% for monthly rental
+    elif total_days >= 7:
+        discount = 0.10  # 10% for weekly rental
+    else:
+        discount = 0
+    
+    discount_amount = base_amount * discount
+    tax = (base_amount - discount_amount) * 0.18  # 18% tax
+    total_amount = base_amount - discount_amount + tax
+    
+    return {
+        'base_amount': base_amount,
+        'discount': discount,
+        'discount_amount': discount_amount,
+        'tax': tax,
+        'total_amount': total_amount
+    }
+
     
 def generate_id(prefix, cursor, table, id_column):
     """Generate a unique 4-character ID with given prefix"""
@@ -24,6 +50,15 @@ def generate_id(prefix, cursor, table, id_column):
         # Check if ID exists
         cursor.execute(f"SELECT {id_column} FROM {table} WHERE {id_column} = %s", (new_id,))
         if not cursor.fetchone():
+            return new_id
+        
+def generate_int_id(cursr, table, id_column):
+    while True:
+        num = random.randint(0, 20)
+        new_id = f"{num:04d}"
+        
+        cursr.execute(f"SELECT {id_column} FROM {table} WHERE {id_column} = %s", (new_id,))
+        if not cursr.fetchone():
             return new_id
 
 def book_car(reg_no, dealership_id):
@@ -50,6 +85,9 @@ def book_car(reg_no, dealership_id):
         st.subheader(f"{car_brand} {car_name}")
         st.write(f"Registration Number: {reg_no}")
         st.write(f"Daily Rental Rate: ₹{car_price:,}")
+        
+        if 'payment_details' not in st.session_state:
+            st.session_state.payment_details = None
         
         # Create form
         form = st.form("booking_form")
@@ -88,30 +126,21 @@ def book_car(reg_no, dealership_id):
                 payment_mode = st.selectbox("Payment Mode*", 
                                           ["Credit Card", "Debit Card", "UPI", "Net Banking"])
                 
-                # if st.button("Calculate Total"):
-                #     display_total()
-                # Calculate total days
-                total_days = (return_date - delivery_date).days
-                base_amount = total_days * car_price
-                
-                # Calculate discount based on duration
-                if total_days >= 30:
-                    discount = 0.15  # 15% for monthly rental
-                elif total_days >= 7:
-                    discount = 0.10  # 10% for weekly rental
-                else:
-                    discount = 0
-                
-                discount_amount = base_amount * discount
-                tax = (base_amount - discount_amount) * 0.18  # 18% tax
-                total_amount = base_amount - discount_amount + tax
-                
+                # Add Calculate Total button inside the form
+                if st.form_submit_button("Calculate Total"):
+                    st.session_state.payment_details = calculate_total(delivery_date, return_date, car_price)             
             
             with col2:
-                st.write(f"Base Amount: ₹{base_amount:,.2f}")
-                st.write(f"Discount ({discount*100}%): ₹{discount_amount:,.2f}")
-                st.write(f"Tax (18%): ₹{tax:,.2f}")
-                st.write(f"**Total Amount: ₹{total_amount:,.2f}**")
+                # Display payment details based on session state
+                if st.session_state.payment_details:
+                    details = st.session_state.payment_details
+                    base_amount, discount, discount_amount, tax, total_amount = st.session_state.payment_details.values()
+                    st.write(f"Base Amount: ₹{details['base_amount']:,.2f}")
+                    st.write(f"Discount ({details['discount']*100}%): ₹{details['discount_amount']:,.2f}")
+                    st.write(f"Tax (18%): ₹{details['tax']:,.2f}")
+                    st.write(f"**Total Amount: ₹{details['total_amount']:,.2f}**")
+                else:
+                    st.write("Click 'Calculate Total' to see payment details")
             
             submitted = form.form_submit_button("Confirm Booking")
             
@@ -149,22 +178,28 @@ def book_car(reg_no, dealership_id):
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (customer_id, phone_no, customer_name, dl_number, 
                     1 if has_pan else 0, pan_number, city, street_name, pincode))
+                print("customer done")
                 
                 # 2. Insert Delivery
+                delivery_id = generate_int_id(cursor, "delivery", "Delivery_id")
+                print(delivery_id)
                 cursor.execute("""
                     INSERT INTO delivery 
-                    (Delivery_Date, Return_Date, Location, POC)
-                    VALUES (%s, %s, %s, %s)
-                """, (delivery_date, return_date, location, poc))
-                delivery_id = cursor.lastrowid
+                    (Delivery_id, Delivery_Date, Return_Date, Location, POC)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (delivery_id, delivery_date, return_date, location, poc))
+                # delivery_id = cursor.lastrowid
+                print("delivery done")
                 
                 # 3. Insert Payment
+                transaction_id = generate_int_id(cursor, "payment", "Transaction_ID")
                 cursor.execute("""
                     INSERT INTO payment 
-                    (Payment_Date, Payment_Status, Mode, Discount, Tax)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (datetime.now().date(), 1, payment_mode, discount, tax))
-                transaction_id = cursor.lastrowid
+                    (Transaction_ID, Payment_Date, Payment_Status, Mode, Discount, Tax)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (transaction_id, datetime.now().date(), 1, payment_mode, discount, tax))
+                # transaction_id = cursor.lastrowid
+                print("payment done")
                 
                 # 4. Insert Booking
                 booking_id = generate_id("B", cursor, "booking", "Booking_ID")
@@ -175,6 +210,7 @@ def book_car(reg_no, dealership_id):
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (booking_id, datetime.now().date(), reg_no, transaction_id,
                     1, delivery_id))  # Assuming Insurance_ID 1 is default
+                print("booking done")
                 
                 # 5. Insert into connections table
                 cursor.execute("""
@@ -182,9 +218,11 @@ def book_car(reg_no, dealership_id):
                     (Dealership_ID, Customer_ID, Booking_ID)
                     VALUES (%s, %s, %s)
                 """, (dealership_id, customer_id, booking_id))
+                print("connection done")
                 
                 # Commit transaction
                 conn.commit()
+                print("transaction done")
                 
                 # Show success message
                 st.success(f"""
@@ -218,8 +256,9 @@ def book_car(reg_no, dealership_id):
                 st.success(f"Booking confirmed! Booking ID: {booking_id}")
                 # Reset the form state
                 st.session_state.show_booking_form = False
-                time.sleep(2)
-                st.rerun()
+                if st.button("Book Another Car"):
+                    st.session_state.selected_car = None
+                    st.rerun()
                 
             except Exception as e:
                 conn.rollback()
@@ -229,41 +268,52 @@ def book_car(reg_no, dealership_id):
         st.error(f"Error: {str(e)}")
         
 if "selected_car" in st.session_state:
-    password = os.environ.get('dbmsPWD')
-    database_name = os.environ.get('dname')
-    
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password=password,
-        database=database_name
-    )
-    
-    car = st.session_state.selected_car
-    Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
-    st.title(f"Your {Brand} {Name}")
+    try:
+        password = os.environ.get('dbmsPWD')
+        database_name = os.environ.get('dname')
+        
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password=password,
+            database=database_name
+        )
+        
+        car = st.session_state.selected_car
+        print(car)
+        Reg_no, Name, Color, No_of_seats, Price, Type, Brand = car
+        st.title(f"Your {Brand} {Name}")
 
-    # Display car image and details
-    left, right = st.columns([2, 3])
-    with left:
-        st.image(f"Images/buggatti.jpeg", caption=f"{Brand} {Name}", width=400)
-    with right:
-        st.write(f"Type: {Type}")
-        st.write(f"Color: {Color}")
-        st.write(f"Seats: {No_of_seats}")
-        st.write(f"Price: Rs. {Price}")
+        # Display car image and details
+        left, right = st.columns([2, 3])
+        with left:
+            st.image(f"Images/buggatti.jpeg", caption=f"{Brand} {Name}", width=400)
+        with right:
+            st.write(f"Type: {Type}")
+            st.write(f"Color: {Color}")
+            st.write(f"Seats: {No_of_seats}")
+            st.write(f"Price: Rs. {Price}")
 
-    # Initialize booking state
-    if 'show_booking_form' not in st.session_state:
-        st.session_state.show_booking_form = False
+        # Initialize booking state
+        if 'show_booking_form' not in st.session_state:
+            st.session_state.show_booking_form = False
 
-    # Show Book Car button only if form isn't shown
-    if not st.session_state.show_booking_form:
-        if st.button("Book Car"):
-            st.session_state.show_booking_form = True
-            st.rerun()
+        # Show Book Car button only if form isn't shown
+        if not st.session_state.show_booking_form:
+            if st.button("Book Car"):
+                st.session_state.show_booking_form = True
+                st.rerun()
 
-    # Show booking form if button was clicked
-    if st.session_state.show_booking_form:
-        book_car(Reg_no, "D1")
+        # Show booking form if button was clicked
+        if st.session_state.show_booking_form:
+            book_car(Reg_no, "D1")
+    except Exception as e:
+        st.warning("No car selected. Redirecting to home...")
+        time.sleep(1)
+        st.switch_page("homepage.py")
 
+# Redirect to main page if no car is selected
+else:
+    st.warning("No car selected. Redirecting to home...")
+    time.sleep(1)
+    st.switch_page("homepage.py")
