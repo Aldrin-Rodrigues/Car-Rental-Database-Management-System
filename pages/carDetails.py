@@ -143,6 +143,11 @@ def book_car(reg_no, dealership_id):
                     st.write("Click 'Calculate Total' to see payment details")
             
             submitted = form.form_submit_button("Confirm Booking")
+        
+        # At the beginning of the script, add this with your other session state initializations
+        if 'booking_completed' not in st.session_state:
+            st.session_state.booking_completed = False
+            st.session_state.booking_details = None
             
         # Handle form submission outside the form block
         if submitted:
@@ -228,45 +233,64 @@ def book_car(reg_no, dealership_id):
                 conn.commit()
                 print("transaction done")
                 
-                # Show success message
-                st.success(f"""
-                    Booking Confirmed!
-                    Booking ID: {booking_id}
-                    Transaction ID: {transaction_id}
-                    Total Amount: ₹{total_amount:,.2f}
-                """)
-                
-                # Add download button for booking confirmation
-                booking_details = f"""
-                    Booking Confirmation
-                    -------------------
-                    Booking ID: {booking_id}
-                    Customer Name: {customer_name}
-                    Vehicle: {car_brand} {car_name}
-                    Registration: {reg_no}
-                    Delivery Date: {delivery_date}
-                    Return Date: {return_date}
-                    Location: {location}
-                    Total Amount: ₹{total_amount:,.2f}
-                    
-                    Thank you for booking with us!
-                """
-                st.download_button(
-                    "Download Booking Confirmation",
-                    booking_details,
-                    file_name=f"{reg_no}_booking_confirmation_{booking_id}.txt"
-                )
-                # After successful booking
-                st.success(f"Booking confirmed! Booking ID: {booking_id}")
-                # Reset the form state
-                st.session_state.show_booking_form = False
-                if st.button("Book Another Car"):
-                    st.session_state.selected_car = None
-                    st.rerun()
+                st.session_state.booking_completed = True
+                st.session_state.booking_details = {
+                    'booking_id': booking_id,
+                    'transaction_id': transaction_id,
+                    'total_amount': total_amount,
+                    'customer_name': customer_name,
+                    'car_brand': car_brand,
+                    'car_name': car_name,
+                    'reg_no': reg_no,
+                    'delivery_date': delivery_date,
+                    'return_date': return_date,
+                    'location': location
+                }
                 
             except Exception as e:
                 conn.rollback()
                 st.error(f"Error processing booking: {str(e)}")
+
+        if st.session_state.booking_completed:
+            details = st.session_state.booking_details
+            
+            st.success(f"""
+                Booking Confirmed!
+                Booking ID: {details['booking_id']}
+                Transaction ID: {details['transaction_id']}
+                Total Amount: ₹{details['total_amount']:,.2f}
+            """)
+            
+            # Add download button for booking confirmation
+            booking_details = f"""
+                Booking Confirmation
+                -------------------
+                Booking ID: {details['booking_id']}
+                Customer Name: {details['customer_name']}
+                Vehicle: {details['car_brand']} {details['car_name']}
+                Registration: {details['reg_no']}
+                Delivery Date: {details['delivery_date']}
+                Return Date: {details['return_date']}
+                Location: {details['location']}
+                Total Amount: ₹{details['total_amount']:,.2f}
+                
+                Thank you for booking with us!
+            """
+            
+            st.download_button(
+                "Download Booking Confirmation",
+                booking_details,
+                file_name=f"{details['reg_no']}_booking_confirmation_{details['booking_id']}.txt"
+            )
+            
+            st.success(f"Booking confirmed! Booking ID: {details['booking_id']}")
+            
+            if st.button("Book Another Car"):
+                st.session_state.show_booking_form = False
+                st.session_state.selected_car = None
+                st.session_state.booking_completed = False
+                st.session_state.booking_details = None
+                st.rerun()
                     
     except Exception as e:
         st.error(f"Error: {str(e)}")
