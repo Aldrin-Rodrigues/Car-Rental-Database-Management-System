@@ -316,7 +316,10 @@ if "selected_car" in st.session_state:
         # Display car image and details
         left, right = st.columns([2, 3])
         with left:
-            st.image(f"Images/buggatti.jpeg", caption=f"{Brand} {Name}", width=400)
+            try:
+                st.image(f"Images/{Color}{Name}.jpeg", caption=f"{Brand} {Name}", width=400)
+            except:
+                st.image(f"Images/buggatti.jpeg", caption=f"{Brand} {Name}", width=400)
         with right:
             st.write(f"Type: {Type}")
             st.write(f"Color: {Color}")

@@ -251,16 +251,16 @@ DELIMITER ;
 
 DELIMITER //
 
-CREATE PROCEDURE UpdateCarPrice(
+CREATE PROCEDURE UpdateCarStatus(
     IN p_registration_number VARCHAR(20),
-    IN p_new_price INT
+    IN p_new_status INT
 )
 BEGIN
     DECLARE car_exists INT;
     
     SELECT COUNT(*) INTO car_exists
     FROM car_model
-    WHERE reg_no = p_registration_number;
+    WHERE reg_no = p_new_status;
     
     IF car_exists > 0 THEN
         UPDATE car_model

@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import time
 import os
 import mysql.connector
@@ -50,7 +51,10 @@ def add_Car():
         "car_model": "",
         "car_seats": 1,
         "car_price": 0,
-        "car_type": "Sedan"
+        "car_type": "Sedan",
+        "car_lastService": "",
+        "car_nextService": "",
+        "car_serviceCost": 0
     }
     
     #change 5 default is_available to 0
@@ -63,16 +67,24 @@ def add_Car():
     car_model = st.text_input("Car Model", key="car_model")
     car_seats = st.number_input("Number of Seats", min_value=1, max_value=10, key="car_seats")
     car_price = st.number_input("Price", min_value=0, key="car_price")
-    car_type = st.selectbox("Car Type", ["Sedan", "SUV", "Hatchback", "Sports Car"], key="car_type")
+    car_type = st.selectbox("Car Type", ["Sedan", "SUV", "Hatchback", "Sports Car", "MPV"], key="car_type")
     car_available = st.number_input("Availability", key="car_available", value=0)
+    car_lastService = st.date_input("Car Last Serviced On", key="car_lastService")
+    car_nextService = st.date_input("Car Next Service On", key="car_nextService", value=car_lastService + relativedelta(months=6), disabled=True)
+    car_serviceCost = st.number_input("Cost Of Last Service", key="car_serviceCost", value=0)
 
     if st.button("Add Car"):
         try:
             ##change 6 add variable is_available
             cursor = conn.cursor()
             # query = "INSERT INTO car_model (Reg_No, Engine_No, Chassis_No, Color, Name, No_of_seats, Price, Type, Brand_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, (SELECT Brand_id FROM car_brand WHERE Name = %s))"
-            query = "INSERT INTO car_model (Reg_No, Engine_No, Chassis_No, Color, Name, No_of_seats, Price, Type, Brand_ID, is_available) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-            cursor.execute(query, (car_registration, car_engine_number, car_chassis_number, car_color, car_model, car_seats, car_price, car_type, car_brand_id, car_available))
+            query1 = "INSERT INTO car_model (Reg_No, Engine_No, Chassis_No, Color, Name, No_of_seats, Price, Type, Brand_ID, is_available) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            cursor.execute(query1, (car_registration, car_engine_number, car_chassis_number, car_color, car_model, car_seats, car_price, car_type, car_brand_id, car_available))
+            subquery = "SELECT (SELECT Service_ID FROM service ORDER BY Service_ID DESC LIMIT 1) + 1 AS New_Service_ID;"
+            cursor.execute(subquery)
+            result = cursor.fetchall()[0][0]
+            query2 = "INSERT INTO service (Service_ID, Last_service_Date, Next_service_Date, Last_service_cost, Reg_No) VALUES (%s, %s, %s, %s, %s);"
+            cursor.execute(query2, (result, car_lastService, car_nextService, car_serviceCost, car_registration))
             conn.commit()
             
             if cursor.rowcount > 0:
@@ -165,8 +177,8 @@ def Delete_Car():
     if st.button("Delete Car"):
         try:
             cursor = conn.cursor()
-            query = "DELETE FROM car_model WHERE Reg_No = %s"
-            cursor.execute(query, (car_reg,))
+            query1 = "DELETE FROM car_model WHERE Reg_No = %s"
+            cursor.execute(query1, (car_reg,))
             conn.commit()
 
             # Check if any row was affected
@@ -180,29 +192,107 @@ def Delete_Car():
             
 
 
+# def View_All_Cars():
+#     st.title("All Cars")
+    
+#     cursor = conn.cursor()
+#     query = """
+#         SELECT 
+#             cm.Reg_No,
+#             cm.Name,
+#             cm.Color,
+#             cm.No_of_seats,
+#             cm.Price,
+#             cm.Type,
+#             cb.Name AS Brand
+#         FROM car_model cm
+#         JOIN car_brand cb ON cm.Brand_id = cb.Brand_id
+#     """
+#     cursor.execute(query)
+#     cars = cursor.fetchall()
+
+#     # Convert the data to a format suitable for a dataframe
+#     car_data = []
+#     for car in cars:
+#         Reg_No, Name, Color, No_of_seats, Price, Type, Brand = car
+#         car_data.append({
+#             "Registration": Reg_No,
+#             "Model": Name,
+#             "Brand": Brand,
+#             "Type": Type,
+#             "Color": Color,
+#             "Seats": No_of_seats,
+#             "Price (Rs.)": f"{Price:,}",  # Format price with commas
+#             "Actions": Reg_No  # We'll use this to create unique buttons
+#         })
+
+#     # Create DataFrame
+#     if car_data:
+#         df = pd.DataFrame(car_data)
+        
+#         # Apply custom styling
+#         st.markdown("""
+#         <style>
+#         .stDataFrame table {
+#             width: 100%;
+#         }
+#         .stDataFrame td {
+#             text-align: left !important;
+#         }
+#         .stDataFrame th {
+#             text-align: left !important;
+#             background-color: #f0f2f6;
+#         }
+#         </style>
+#         """, unsafe_allow_html=True)
+
+#         # Create two columns for search and filter
+#         col1, col2 = st.columns(2)
+        
+#         # Add search functionality
+#         with col1:
+#             search = st.text_input("Search cars", "")
+#             if search:
+#                 df = df[df.astype(str).apply(lambda x: x.str.contains(search, case=False)).any(axis=1)]
+
+#         # Add type filter
+#         with col2:
+#             types = df['Type'].unique()
+#             selected_type = st.selectbox("Filter by Type", ['All'] + list(types))
+#             if selected_type != 'All':
+#                 df = df[df['Type'] == selected_type]
+
+#         # Display the table
+#         st.dataframe(
+#             df.drop('Actions', axis=1),  # Drop the Actions column as we'll handle it separately
+#             hide_index=True,
+#             use_container_width=True
+#         )
+#     else:
+#         st.info("No cars found in the database.")  
 def View_All_Cars():
     st.title("All Cars")
-    
     cursor = conn.cursor()
     query = """
-        SELECT 
+        SELECT
             cm.Reg_No,
             cm.Name,
             cm.Color,
             cm.No_of_seats,
             cm.Price,
             cm.Type,
+            cm.is_available,
             cb.Name AS Brand
         FROM car_model cm
         JOIN car_brand cb ON cm.Brand_id = cb.Brand_id
     """
     cursor.execute(query)
     cars = cursor.fetchall()
-
+    
     # Convert the data to a format suitable for a dataframe
     car_data = []
     for car in cars:
-        Reg_No, Name, Color, No_of_seats, Price, Type, Brand = car
+        Reg_No, Name, Color, No_of_seats, Price, Type, is_available, Brand = car
         car_data.append({
             "Registration": Reg_No,
             "Model": Name,
@@ -211,6 +301,7 @@ def View_All_Cars():
             "Color": Color,
             "Seats": No_of_seats,
             "Price (Rs.)": f"{Price:,}",  # Format price with commas
+            "Status": "Available" if is_available == 1 else "Not Available",
             "Actions": Reg_No  # We'll use this to create unique buttons
         })
 
@@ -218,25 +309,33 @@ def View_All_Cars():
     if car_data:
         df = pd.DataFrame(car_data)
         
-        # Apply custom styling
+        # Apply custom styling with updated status colors
         st.markdown("""
-        <style>
-        .stDataFrame table {
-            width: 100%;
-        }
-        .stDataFrame td {
-            text-align: left !important;
-        }
-        .stDataFrame th {
-            text-align: left !important;
-            background-color: #f0f2f6;
-        }
-        </style>
+            <style>
+            .stDataFrame table {
+                width: 100%;
+            }
+            .stDataFrame td {
+                text-align: left !important;
+            }
+            .stDataFrame th {
+                text-align: left !important;
+                background-color: #f0f2f6;
+            }
+            .available {
+                color: green;
+                font-weight: bold;
+            }
+            .not-available {
+                color: red;
+                font-weight: bold;
+            }
+            </style>
         """, unsafe_allow_html=True)
 
-        # Create two columns for search and filter
-        col1, col2 = st.columns(2)
-        
+        # Create three columns for search, type filter, and availability filter
+        col1, col2, col3 = st.columns(3)
+
         # Add search functionality
         with col1:
             search = st.text_input("Search cars", "")
@@ -250,14 +349,32 @@ def View_All_Cars():
             if selected_type != 'All':
                 df = df[df['Type'] == selected_type]
 
+        # Add availability filter
+        with col3:
+            availability = st.selectbox("Filter by Availability", ['All', 'Available', 'Not Available'])
+            if availability != 'All':
+                df = df[df['Status'] == availability]
+
+        # Style the Status column
+        def style_status(val):
+            color = 'green' if val == 'Available' else 'red'
+            return f'color: {color}; font-weight: bold'
+
+        # Apply styling to the DataFrame
+        styled_df = df.drop('Actions', axis=1).style.applymap(
+            style_status,
+            subset=['Status']
+        )
+
         # Display the table
         st.dataframe(
-            df.drop('Actions', axis=1),  # Drop the Actions column as we'll handle it separately
+            styled_df,
             hide_index=True,
             use_container_width=True
         )
+
     else:
-        st.info("No cars found in the database.")    
+        st.info("No cars found in the database.")  
         
 def Query():
     st.title("Write a Query")

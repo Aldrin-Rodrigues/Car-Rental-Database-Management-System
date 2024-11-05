@@ -285,8 +285,9 @@ cars = cursor.fetchall()
 
 # total_cars = Calculate_total_available()
 # Calculate total number of rows needed
-total_cars = len(cars) #16
+total_Cars = Calculate_total_available()
 cars_per_row = 4
+total_cars = len(cars) #16
 total_rows = ceil(total_cars / cars_per_row) #4
 
 # Create grid layout
