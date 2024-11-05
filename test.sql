@@ -73,19 +73,19 @@ Create table Payment (
 Transaction_ID INT(4) NOT NULL PRIMARY KEY,
 Payment_Date DATE,
 Payment_Status BOOLEAN,
-Mode VARCHAR(8),
-Discount FLOAT CHECK (Discount > 0.0 and Discount < 0.40) DEFAULT 0.0,
-Tax FLOAT CHECK (Tax > 0.0)
+Mode VARCHAR(20),
+Discount FLOAT DEFAULT 0.0,
+Tax FLOAT 
 ); 
 
 
-CREATE TABLE Penalty (
-Transaction_ID INT(4),
-Amount INT,
-Reason VARCHAR(10) CHECK (Reason IN ('Late', 'Damage', 'IAE')),
-PRIMARY KEY (Transaction_ID),
-FOREIGN KEY (Transaction_ID) REFERENCES Payment(Transaction_ID)
-);
+-- CREATE TABLE Penalty (
+-- Transaction_ID INT(4),
+-- Amount INT,
+-- Reason VARCHAR(10) CHECK (Reason IN ('Late', 'Damage', 'IAE')),
+-- PRIMARY KEY (Transaction_ID),
+-- FOREIGN KEY (Transaction_ID) REFERENCES Payment(Transaction_ID)
+-- );
 
 Create table Booking (
 Booking_ID VARCHAR(4) PRIMARY KEY,
@@ -201,7 +201,19 @@ INSERT INTO car_model VALUES
 ("KA50EF1122", "E172", "C172", "Silver", "Marazzo", 7, 17500, "MPV", "B3"),
 ("KA51FG2233", "E173", "C173", "Black", "XUV300", 5, 14000, "SUV", "B3");
 
-
+INSERT INTO car_brand (Brand_ID, Name, Number_of_Vehicles, Dealership_ID) VALUES
+('B11', 'Land Rover', 0, 'D1'),
+('B12', 'Audi', 0, 'D1'),
+('B13', 'Mercedes Benz', 0, 'D1'),
+('B14', 'BMW', 0, 'D1'),
+('B15', 'Jaguar', 0, 'D1'),
+('B16', 'MG', 0, 'D1'),
+('B17', 'Volkswagen', 0, 'D1'),
+('B18', 'Skoda', 0, 'D1'),
+('B19', 'Jeep', 0, 'D1'),
+('B20', 'Mini', 0, 'D1'),
+('B21', 'Fiat', 0, 'D1'),
+('B22', 'Nissan', 0, 'D1');
 
 
 -- Insert data into service table for each registration number
